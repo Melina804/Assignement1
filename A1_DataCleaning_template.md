@@ -298,6 +298,14 @@ NewMergedData$Gender <- str_replace_all(NewMergedData$Gender, "2", "F")
 # Renaming diagnosis
 NewMergedData$Diagnosis <- str_replace_all(NewMergedData$Diagnosis, "A", "ASD")
 NewMergedData$Diagnosis <- str_replace_all(NewMergedData$Diagnosis, "B", "TD")
+
+# Anonomysing the childrens names 
+NewMergedData$SUBJ <- as.factor(NewMergedData$SUBJ)
+levels(NewMergedData$SUBJ)<- c(1:62)
+
+# Save as a .csv file
+clean_data <- NewMergedData
+write.csv(clean_data, file = "A1_clean_data")
 ```
 
 1.  BONUS QUESTIONS The aim of this last section is to make sure you are
