@@ -139,7 +139,7 @@ package. There are always multiple ways of solving any problem and no
 absolute best method.
 
 ``` r
-plo1 <- plot(Lenght_uttereance)
+plot1 <- plot(Lenght_uttereance)
 ```
 
 ![](A1_DataCleaning_template_files/figure-markdown_github/unnamed-chunk-3-1.png)

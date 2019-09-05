@@ -95,7 +95,7 @@ Tip: look through the chapter on data transformation in R for data science (http
 
 
 ```{r}
-plo1 <- plot(Lenght_uttereance)
+plot1 <- plot(Lenght_uttereance)
 
 ```
 
