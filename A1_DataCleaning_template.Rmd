@@ -72,9 +72,9 @@ Load the three data sets, after downloading them from dropbox and saving them in
 * Word data: https://www.dropbox.com/s/8ng1civpl2aux58/token_train.csv?dl=0
 
 ```{r}
-Lenght_uttereance <- read.csv("LU_train.csv")
-word_data <- read.csv("token_train.csv")
-demografic <- read.csv("demo_train.csv")
+Lenght_uttereance <- read.csv("Data/LU_train.csv")
+word_data <- read.csv("Data/token_train.csv")
+demografic <- read.csv("Data/demo_train.csv")
 
 ```
 
@@ -95,6 +95,7 @@ Tip: look through the chapter on data transformation in R for data science (http
 
 
 ```{r}
+plo1 <- plot(Lenght_uttereance)
 
 ```
 
