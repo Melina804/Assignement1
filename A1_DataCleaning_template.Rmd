@@ -63,7 +63,7 @@ If you're not in a project in Rstudio, make sure to set your working directory h
 If you created an RStudio project, then your working directory (the directory with your data and code for these assignments) is the project directory.
 
 ```{r}
-pacman::p_load(tidyverse,janitor)
+pacman::p_load(tidyverse,janitor,stringr)
 ```
 
 Load the three data sets, after downloading them from dropbox and saving them in your working directory:
@@ -72,7 +72,7 @@ Load the three data sets, after downloading them from dropbox and saving them in
 * Word data: https://www.dropbox.com/s/8ng1civpl2aux58/token_train.csv?dl=0
 
 ```{r}
-Lenght_uttereance <- read.csv("Data/LU_train.csv")
+LU <- read.csv("Data/LU_train.csv")
 word_data <- read.csv("Data/token_train.csv")
 demografic <- read.csv("Data/demo_train.csv")
 
@@ -95,7 +95,11 @@ Tip: look through the chapter on data transformation in R for data science (http
 
 
 ```{r}
-plot1 <- plot(Lenght_uttereance)
+# Visualising one of the data sets
+plot1 <- plot(LU)
+
+#remate demo
+demografic <- rename(demografic, SUBJ = Child.ID, VISIT = Visit)
 
 ```
 
@@ -105,7 +109,9 @@ Tip: The stringr package is what you need. str_extract () will allow you to extr
 
 
 ```{r}
-
+#Homogeneize the data for visit - removing all strings that is not numeric 
+LU$VISIT <- str_extract(LU$VISIT, "\\d")
+word_data$VISIT <- str_extract(word_data$VISIT, "\\d")
 
 ```
 
@@ -117,6 +123,10 @@ Tip: You can either have one line of code for each child name that is to be chan
 
 
 ```{r}
+# Removing all punctuation from the SUBJ in the data sets 
+demografic$SUBJ <- str_replace_all(demografic$SUBJ, "[:punct:]", "")
+LU$SUBJ <- str_replace_all(LU$SUBJ, "[:punct:]", "")
+word_data$SUBJ <- str_replace_all(word_data$SUBJ, "[:punct:]", "")
 
 ```
 
@@ -134,8 +144,10 @@ The variables we need are:
 * MullenRaw, 
 * ExpressiveLangRaw, 
 * Socialization
+
 * MOT_MLU, 
 * CHI_MLU, 
+
 * types_MOT, 
 * types_CHI, 
 * tokens_MOT, 
@@ -152,7 +164,18 @@ Most variables should make sense, here the less intuitive ones.
 
 Feel free to rename the variables into something you can remember (i.e. nonVerbalIQ, verbalIQ)
 
-```{r}
+```{r} 
+# Selcet important colomns from each data set 
+
+# Demographic
+DemographicS <- select(demografic, SUBJ, VISIT, Diagnosis, Ethnicity, Gender, Age, ADOS, MullenRaw, ExpressiveLangRaw, Socialization) 
+
+# Length utterances
+LUS <- select(LU, SUBJ, VISIT, MOT_MLU, CHI_MLU)
+
+# Word data
+word_data_s <- select(word_data, SUBJ, VISIT, types_MOT, types_CHI, tokens_MOT, tokens_CHI)
+
 
 ```
 
@@ -163,7 +186,9 @@ Some things to pay attention to:
 * make sure to understand whether (and if so why) there are NAs in the dataset (e.g. some measures were not taken at all visits, some recordings were lost or permission to use was withdrawn)
 
 ```{r}
-
+# Merge all the 3 data sets 
+NewDataSet <- merge(LUS, word_data_s)
+NewDataSet <-merge(NewDataSet, DemographicS)
 
 ```
 
@@ -180,16 +205,42 @@ A possible way to do so:
 
 ```{r}
 
+# Making a new dataset with relevant data
+visit_1 <- select(NewDataSet, VISIT, SUBJ, ADOS, MullenRaw, ExpressiveLangRaw, Socialization)
+
+# filter so we only have the 1 visit 
+visit_1 <- filter(visit_1, VISIT == 1)
+
+# Remane clinical variables so we know which is from visit 1
+visit_1<- rename(visit_1, ADOS_1 = ADOS, MullenRaw_1 = MullenRaw, ExpressiveLangRaw_1 = ExpressiveLangRaw, Socialization_1 = Socialization)
+
+# Selecting relevant colomns 
+visit_1 <- select(visit_1, ADOS_1, SUBJ, MullenRaw_1, ExpressiveLangRaw_1, Socialization_1)
+
+# merging the datasets
+NewMergedData <- merge(visit_1, NewDataSet)
+
+
 ```
 
 2g. Final touches
 
 Now we want to
 * anonymize our participants (they are real children!). 
-* make sure the variables have sensible values. E.g. right now gender is marked 1 and 2, but in two weeks you will not be able to remember, which gender were connected to which number, so change the values from 1 and 2 to F and M in the gender variable. For the same reason, you should also change the values of Diagnosis from A and B to ASD (autism spectrum disorder) and TD (typically developing). Tip: Try taking a look at ifelse(), or google "how to rename levels in R".
+* make sure the variables have sensible values. E.g. right now gender is marked 1 and 2, but in two weeks you will not be able to remember, which gender were connected to which number, so change the values from 1 and 2 to F and M in the gender variable. For the same reason, you should also change the values of Diagnosis from A and B to ASD (autism spectrum disorder) and TD (typically developing). 
+
+Tip: Try taking a look at ifelse(), or google "how to rename levels in R".
 * Save the data set using into a csv file. Hint: look into write.csv()
 
 ```{r}
+# Renaming gender 
+NewMergedData$Gender <- str_replace_all(NewMergedData$Gender, "1", "M")
+NewMergedData$Gender <- str_replace_all(NewMergedData$Gender, "2", "F")
+
+# Renaming diagnosis
+NewMergedData$Diagnosis <- str_replace_all(NewMergedData$Diagnosis, "A", "ASD")
+NewMergedData$Diagnosis <- str_replace_all(NewMergedData$Diagnosis, "B", "TD")
+
 
 ```
 

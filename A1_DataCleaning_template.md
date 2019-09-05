@@ -94,7 +94,7 @@ directory (the directory with your data and code for these assignments)
 is the project directory.
 
 ``` r
-pacman::p_load(tidyverse,janitor)
+pacman::p_load(tidyverse,janitor,stringr)
 ```
 
 Load the three data sets, after downloading them from dropbox and saving
@@ -107,7 +107,7 @@ participants:
 <a href="https://www.dropbox.com/s/8ng1civpl2aux58/token_train.csv?dl=0" class="uri">https://www.dropbox.com/s/8ng1civpl2aux58/token_train.csv?dl=0</a>
 
 ``` r
-Lenght_uttereance <- read.csv("Data/LU_train.csv")
+LU <- read.csv("Data/LU_train.csv")
 word_data <- read.csv("Data/token_train.csv")
 demografic <- read.csv("Data/demo_train.csv")
 ```
@@ -139,10 +139,16 @@ package. There are always multiple ways of solving any problem and no
 absolute best method.
 
 ``` r
-plot1 <- plot(Lenght_uttereance)
+# Visualising one of the data sets
+plot1 <- plot(LU)
 ```
 
 ![](A1_DataCleaning_template_files/figure-markdown_github/unnamed-chunk-3-1.png)
+
+``` r
+#remate demo
+demografic <- rename(demografic, SUBJ = Child.ID, VISIT = Visit)
+```
 
 2b. Find a way to homogeneize the way “visit” is reported (visit1
 vs. 1).
@@ -150,6 +156,12 @@ vs. 1).
 Tip: The stringr package is what you need. str\_extract () will allow
 you to extract only the digit (number) from a string, by using the
 regular expression \\d.
+
+``` r
+#Homogeneize the data for visit - removing all strings that is not numeric 
+LU$VISIT <- str_extract(LU$VISIT, "\\d")
+word_data$VISIT <- str_extract(word_data$VISIT, "\\d")
+```
 
 2c. We also need to make a small adjustment to the content of the
 Child.ID coloumn in the demographic data. Within this column, names that
@@ -163,6 +175,13 @@ either have one line of code for each child name that is to be changed
 (easier, more typing) or specify the pattern that you want to match
 (more complicated: look up “regular expressions”, but less typing)
 
+``` r
+# Removing all punctuation from the SUBJ in the data sets 
+demografic$SUBJ <- str_replace_all(demografic$SUBJ, "[:punct:]", "")
+LU$SUBJ <- str_replace_all(LU$SUBJ, "[:punct:]", "")
+word_data$SUBJ <- str_replace_all(word_data$SUBJ, "[:punct:]", "")
+```
+
 2d. Now that the nitty gritty details of the different data sets are
 fixed, we want to make a subset of each data set only containig the
 variables that we wish to use in the final data set. For this we use the
@@ -170,8 +189,15 @@ tidyverse package dplyr, which contains the function select().
 
 The variables we need are: \* Child.ID, \* Visit, \* Diagnosis, \*
 Ethnicity, \* Gender, \* Age, \* ADOS,  
-\* MullenRaw, \* ExpressiveLangRaw, \* Socialization \* MOT\_MLU, \*
-CHI\_MLU, \* types\_MOT, \* types\_CHI, \* tokens\_MOT, \* tokens\_CHI.
+\* MullenRaw, \* ExpressiveLangRaw, \* Socialization
+
+-   MOT\_MLU,
+-   CHI\_MLU,
+
+-   types\_MOT,
+-   types\_CHI,
+-   tokens\_MOT,
+-   tokens\_CHI.
 
 Most variables should make sense, here the less intuitive ones. \* ADOS
 (Autism Diagnostic Observation Schedule) indicates the severity of the
@@ -192,6 +218,19 @@ responsiveness, as measured by Vineland
 Feel free to rename the variables into something you can remember
 (i.e. nonVerbalIQ, verbalIQ)
 
+``` r
+# Selcet important colomns from each data set 
+
+# Demographic
+DemographicS <- select(demografic, SUBJ, VISIT, Diagnosis, Ethnicity, Gender, Age, ADOS, MullenRaw, ExpressiveLangRaw, Socialization) 
+
+# Length utterances
+LUS <- select(LU, SUBJ, VISIT, MOT_MLU, CHI_MLU)
+
+# Word data
+word_data_s <- select(word_data, SUBJ, VISIT, types_MOT, types_CHI, tokens_MOT, tokens_CHI)
+```
+
 2e. Finally we are ready to merge all the data sets into just one.
 
 Some things to pay attention to: \* make sure to check that the merge
@@ -199,6 +238,12 @@ has included all relevant data (e.g. by comparing the number of rows) \*
 make sure to understand whether (and if so why) there are NAs in the
 dataset (e.g. some measures were not taken at all visits, some
 recordings were lost or permission to use was withdrawn)
+
+``` r
+# Merge all the 3 data sets 
+NewDataSet <- merge(LUS, word_data_s)
+NewDataSet <-merge(NewDataSet, DemographicS)
+```
 
 2f. Only using clinical measures from Visit 1 In order for our models to
 be useful, we want to miimize the need to actually test children as they
@@ -214,6 +259,23 @@ dataset \* rename the clinical variables (e.g. ADOS to ADOS1) and remove
 the visit (so that the new clinical variables are reported for all 6
 visits) \* merge the new dataset with the old
 
+``` r
+# Making a new dataset with relevant data
+visit_1 <- select(NewDataSet, VISIT, SUBJ, ADOS, MullenRaw, ExpressiveLangRaw, Socialization)
+
+# filter so we only have the 1 visit 
+visit_1 <- filter(visit_1, VISIT == 1)
+
+# Remane clinical variables so we know which is from visit 1
+visit_1<- rename(visit_1, ADOS_1 = ADOS, MullenRaw_1 = MullenRaw, ExpressiveLangRaw_1 = ExpressiveLangRaw, Socialization_1 = Socialization)
+
+# Selecting relevant colomns 
+visit_1 <- select(visit_1, ADOS_1, SUBJ, MullenRaw_1, ExpressiveLangRaw_1, Socialization_1)
+
+# merging the datasets
+NewMergedData <- merge(visit_1, NewDataSet)
+```
+
 2g. Final touches
 
 Now we want to \* anonymize our participants (they are real children!).
@@ -222,9 +284,21 @@ is marked 1 and 2, but in two weeks you will not be able to remember,
 which gender were connected to which number, so change the values from 1
 and 2 to F and M in the gender variable. For the same reason, you should
 also change the values of Diagnosis from A and B to ASD (autism spectrum
-disorder) and TD (typically developing). Tip: Try taking a look at
-ifelse(), or google “how to rename levels in R”. \* Save the data set
-using into a csv file. Hint: look into write.csv()
+disorder) and TD (typically developing).
+
+Tip: Try taking a look at ifelse(), or google “how to rename levels in
+R”. \* Save the data set using into a csv file. Hint: look into
+write.csv()
+
+``` r
+# Renaming gender 
+NewMergedData$Gender <- str_replace_all(NewMergedData$Gender, "1", "M")
+NewMergedData$Gender <- str_replace_all(NewMergedData$Gender, "2", "F")
+
+# Renaming diagnosis
+NewMergedData$Diagnosis <- str_replace_all(NewMergedData$Diagnosis, "A", "ASD")
+NewMergedData$Diagnosis <- str_replace_all(NewMergedData$Diagnosis, "B", "TD")
+```
 
 1.  BONUS QUESTIONS The aim of this last section is to make sure you are
     fully fluent in the tidyverse. Here’s the link to a very helpful
